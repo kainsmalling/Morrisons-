@@ -1,0 +1,51 @@
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Morrisons barcodes</title>
+<style>
+:root{--bg:#f4f4f4;--fg:#111;--card:#fff;--line:#ddd;--mut:#666;--acc:#00703c;--chip:#e6e6e6}
+@media (prefers-color-scheme:dark){:root{--bg:#121212;--fg:#eee;--card:#1e1e1e;--line:#333;--mut:#999;--acc:#3fbf7f;--chip:#2a2a2a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif}
+header{position:sticky;top:0;background:var(--bg);padding:12px 16px;border-bottom:1px solid var(--line);z-index:2}
+input{width:100%;font-size:20px;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--fg)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 0}.chip{padding:8px 14px;border-radius:99px;background:var(--chip);color:var(--fg);border:0;font-size:15px;white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--acc);color:#fff}
+main{padding:12px 16px}h2{margin:12px 0 8px;font-size:15px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer}
+.bc{background:#fff;padding:6px;border-radius:6px}.bc svg{width:100%;height:70px;display:block}
+.nm{font-weight:600;margin-top:8px}.sub{color:var(--mut);font-size:13px}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:9;padding:16px}
+#ov.on{display:flex}#big{background:#fff;color:#000;border-radius:16px;padding:20px;width:min(92vw,720px);text-align:center}
+#big svg{width:100%;height:min(45vh,260px)}#big .n{font:700 26px monospace;letter-spacing:2px}#big .t{font-weight:700;font-size:20px;margin-top:8px}
+.empty{color:var(--mut);padding:24px 0}
+</style></head><body>
+<header><input id="q" type="search" placeholder="Search e.g. beans, cheese, noodles…" autocomplete="off"><div class="chips" id="chips"></div></header>
+<main id="main"></main>
+<div id="ov"><div id="big"></div></div>
+<script>
+const ITEMS=/*DATA*/[];
+let cat="All",q="";
+const $=id=>document.getElementById(id);
+const cats=["All","Most bought",...[...new Set(ITEMS.map(i=>i.category))].sort()];
+function card(i){return `<div class="card" data-e="${i.ean}"><div class="bc">${i.svg}</div><div class="nm">${i.name}${i.size?" "+i.size:""}</div><div class="sub">${i.category} · bought ${i.units}×</div></div>`}
+function render(){
+  $("chips").innerHTML=cats.map(c=>`<button class="chip ${c===cat?"on":""}" data-c="${c}">${c}</button>`).join("");
+  const t=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let l=ITEMS.filter(i=>t.every(w=>(i.name+" "+i.size+" "+i.aliases+" "+i.category).toLowerCase().includes(w)));
+  const by=(a,b)=>b.receipts-a.receipts||b.units-a.units||a.name.localeCompare(b.name);
+  let h="";
+  if(cat==="Most bought"){l=l.sort(by).slice(0,20);h=`<h2>Most bought</h2><div class="grid">${l.map(card).join("")}</div>`}
+  else{
+    if(cat!=="All")l=l.filter(i=>i.category===cat);
+    l.sort(by);
+    if(cat==="All"&&!t.length){h+=`<h2>Most bought</h2><div class="grid">${[...l].slice(0,8).map(card).join("")}</div><h2>All items</h2>`}
+    h+=`<div class="grid">${(cat==="All"&&!t.length?[...l].sort((a,b)=>a.name.localeCompare(b.name)):l).map(card).join("")}</div>`;
+  }
+  $("main").innerHTML=l.length?h:`<div class="empty">Nothing found.</div>`;
+}
+$("q").oninput=e=>{q=e.target.value;render()};
+$("chips").onclick=e=>{const c=e.target.dataset.c;if(c){cat=c;render()}};
+$("main").onclick=e=>{const c=e.target.closest(".card");if(!c)return;const i=ITEMS.find(x=>x.ean===c.dataset.e);
+  $("big").innerHTML=i.svg+`<div class="n">${i.ean}</div><div class="t">${i.name}${i.size?" "+i.size:""}</div>`;$("ov").classList.add("on")};
+$("ov").onclick=()=>$("ov").classList.remove("on");
+render();
+</script></body></html>
