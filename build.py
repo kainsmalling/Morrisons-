@@ -12,12 +12,19 @@ def bits(c):
         return "101"+"".join((L7 if p[i]=="L" else G7)[int(x)] for i,x in enumerate(c[1:7]))+"01010"+"".join(R7[int(x)] for x in c[7:])+"101"
     return "101"+"".join(L7[int(x)] for x in c[:4])+"01010"+"".join(R7[int(x)] for x in c[4:])+"101"
 def svg(c):
-    b=bits(c);q=9
-    return f'<svg viewBox="0 0 {len(b)+2*q} 60" preserveAspectRatio="none" fill="#000">'+"".join(f'<rect x="{q+i}" width="1" height="60"/>' for i,x in enumerate(b) if x=="1")+'</svg>'
+    """Self-contained barcode image (white background baked in) as a data URI.
+    Keeping background + bars inside one image stops device 'force dark' modes
+    from inverting only half of it."""
+    import base64
+    b=bits(c);q=9;w=len(b)+2*q
+    bars="".join(f'<rect x="{q+i}" width="1" height="60"/>' for i,x in enumerate(b) if x=="1")
+    s=(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} 60" width="{w*4}" height="240" preserveAspectRatio="none" shape-rendering="crispEdges">'
+       f'<rect width="{w}" height="60" fill="#fff"/><g fill="#000">{bars}</g></svg>')
+    return "data:image/svg+xml;base64,"+base64.b64encode(s.encode()).decode()
 items=json.load(open("items.json",encoding="utf-8"))
 for it in items:
     assert valid(it["ean"]),("bad barcode",it)
-    it["svg"]=svg(it["ean"])
+    it["uri"]=svg(it["ean"])
 data=json.dumps(items,ensure_ascii=False).replace("</","<\\/")
 page=open("template.html",encoding="utf-8").read().replace("/*DATA*/[]",data)
 open("index.html","w",encoding="utf-8").write(page)
